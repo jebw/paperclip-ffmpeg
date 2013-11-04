@@ -139,6 +139,7 @@ module Paperclip
         @convert_options[:output][:f] = 'ogg'
       when 'mp4'
         @convert_options[:output][:acodec] = 'aac'
+        @convert_options[:output][:ar] ||= '44100' # necessary since FAAC doesn't seem to handle odd bitrates well
         @convert_options[:output][:strict] = 'experimental'
       end
 
