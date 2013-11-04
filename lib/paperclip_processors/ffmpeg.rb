@@ -126,7 +126,11 @@ module Paperclip
       # Add format
       case @format
       when 'jpg', 'jpeg', 'png', 'gif' # Images
-        @convert_options[:input][:ss] = @time
+        if @time > duration # Sanity check for really short videos
+          @convert_options[:input][:ss] =  (duration.to_f / 2).floor
+        else
+          @convert_options[:input][:ss] = @time
+        end
         @convert_options[:output][:vframes] = 1
         @convert_options[:output][:f] = 'image2'
       when 'webm' # WebM
@@ -153,7 +157,7 @@ module Paperclip
 
       Ffmpeg.log("Building Parameters") if @whiny
       parameters = parameters.flatten.compact.join(" ").strip.squeeze(" ")
-
+      
       Ffmpeg.log(parameters)
       begin
         success = Paperclip.run("ffmpeg", parameters, :source => "#{File.expand_path(src.path)}", :dest => File.expand_path(dst.path))
@@ -190,6 +194,11 @@ module Paperclip
       meta
     end
 
+    def duration
+      return 0 unless @meta[:length]
+      hours, mins, secs = @meta[:length].split(':').map(&:to_i)
+      hours * 3600 + mins * 60 + secs
+    end
 
     def self.log message
       Paperclip.log "[ffmpeg] #{message}"
