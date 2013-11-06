@@ -65,7 +65,17 @@ module Paperclip
           # Current width and height
           if @keep_aspect
             Ffmpeg.log("Keeping Aspect Ratio") if @whiny
-            if @enlarge_only
+            if target_width.blank? # fixed height
+              height = target_height.to_i
+              width = (height.to_f * (@meta[:aspect].to_f)).to_i
+              @convert_options[:output][:s] = "#{width.to_i/2*2}x#{height}"
+              Ffmpeg.log("Convert Options: #{@convert_options[:output][:s]}") if @whiny
+            elsif target_height.blank? # fixed width
+              width = target_width.to_i
+              height = (width.to_f / (@meta[:aspect].to_f)).to_i
+              @convert_options[:output][:s] = "#{width}x#{height.to_i/2*2}"
+              Ffmpeg.log("Convert Options: #{@convert_options[:output][:s]}") if @whiny
+            elsif @enlarge_only
               Ffmpeg.log("Enlarge Only") if @whiny
               if current_width.to_i < target_width.to_i
                 # Keep aspect ratio
