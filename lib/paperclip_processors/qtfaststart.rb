@@ -12,7 +12,6 @@ module Paperclip
       @format          = options[:format]
       @current_format  = File.extname(@file.path)
       @basename        = File.basename(@file.path, @current_format)
-      attachment.instance_write(:meta, @meta)
     end
     
     # Performs the atom repositioning on +file+.
