@@ -35,6 +35,7 @@ module Paperclip
       @basename        = File.basename(@file.path, @current_format)
       @meta            = identify
       @pad_color       = options[:pad_color].nil? ? "black" : options[:pad_color]
+      @auto_rotate     = options[:auto_rotate].nil? ? true : options[:auto_rotate]
       attachment.instance_write(:meta, @meta)
     end
     # Performs the transcoding of the +file+ into a thumbnail/video. Returns the Tempfile
@@ -58,10 +59,17 @@ module Paperclip
           target_width = $1
           target_height = $2
         end
+        
         # Only calculate target dimensions if we have current dimensions
         unless @meta[:size].nil?
           Ffmpeg.log("Target Size is Available") if @whiny
           current_width, current_height = @meta[:size].split('x')
+          
+          if @auto_rotate && @meta[:rotate] # calculate as if already rotated
+            current_width, current_height = current_height, current_width
+            @meta[:aspect] = (1.to_f / @meta[:aspect])
+          end
+          
           # Current width and height
           if @keep_aspect
             Ffmpeg.log("Keeping Aspect Ratio") if @whiny
@@ -131,6 +139,18 @@ module Paperclip
           end
         end
       end
+      
+      if @auto_rotate && @meta[:rotate]
+        Ffmpeg.log("Auto rotating") if @whiny
+        case @meta[:rotate]
+        when 90
+          @convert_options[:output][:vf] = [@convert_options[:output][:vf],'transpose=1'].compact.join(',')
+          @convert_options[:output][:'metadata:s:v:0'] = 'rotate=0'
+        when -90, 270
+          @convert_options[:output][:vf] = [@convert_options[:output][:vf],'transpose=1'].compact.join(',')
+          @convert_options[:output][:'metadata:s:v:0'] = 'rotate=0'
+        end
+      end
 
       Ffmpeg.log("Adding Format") if @whiny
       # Add format
@@ -198,6 +218,10 @@ module Paperclip
         # Matching Duration: 00:01:31.66, start: 0.000000, bitrate: 10404 kb/s
         if line =~ /Duration:(\s.?(\d*):(\d*):(\d*\.\d*))/
           meta[:length] = $2.to_s + ":" + $3.to_s + ":" + $4.to_s
+        end
+        
+        if line =~ /rotate\s+:\s+(\d+)/
+          meta[:rotate] = $1.to_i
         end
       end
       Paperclip.log("[ffmpeg] Command Success") if @whiny
