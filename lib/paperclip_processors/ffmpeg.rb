@@ -99,8 +99,19 @@ module Paperclip
               Ffmpeg.log("Shrink Only") if @whiny
               if current_width.to_i > target_width.to_i
                 # Keep aspect ratio
-                width = target_width.to_i
-                height = (width.to_f / (@meta[:aspect].to_f)).to_i
+                
+                if (target_width.to_f / current_width.to_i) > (target_height.to_f / current_height.to_i)
+                  height = target_height.to_i
+                  width = (height.to_f * @meta[:aspect].to_f).to_i
+                else
+                  width = target_width.to_i
+                  height = (width.to_f / (@meta[:aspect].to_f)).to_i
+                end
+                @convert_options[:output][:s] = "#{width.to_i/2*2}x#{height.to_i/2*2}"
+                Ffmpeg.log("Convert Options: #{@convert_options[:output][:s]}") if @whiny
+              elsif current_height.to_i > target_height.to_i
+                height = target_height.to_i
+                width = (height.to_f * @meta[:aspect].to_f).to_i
                 @convert_options[:output][:s] = "#{width.to_i/2*2}x#{height.to_i/2*2}"
                 Ffmpeg.log("Convert Options: #{@convert_options[:output][:s]}") if @whiny
               else
@@ -126,9 +137,16 @@ module Paperclip
             else
               Ffmpeg.log("Resize") if @whiny
               # Keep aspect ratio
-              width = target_width.to_i
-              height = (width.to_f / (@meta[:aspect].to_f)).to_i
+              
+              if (target_height.to_f / current_height.to_f) < (target_width.to_f / current_width.to_f)
+                height = target_height.to_i
+                width = (height.to_f * (@meta[:aspect].to_f)).to_i
+              else
+                width = target_width.to_i
+                height = (width.to_f / (@meta[:aspect].to_f)).to_i
+              end
               @convert_options[:output][:s] = "#{width.to_i/2*2}x#{height.to_i/2*2}"
+              
               Ffmpeg.log("Convert Options: #{@convert_options[:output][:s]}") if @whiny
             end
           else
